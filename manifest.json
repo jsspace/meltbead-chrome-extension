@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Meltbead - Image to Bead Pattern",
+  "version": "0.1.0",
+  "description": "Right-click an image to create a fuse bead pattern with real bead color codes and a material list.",
+  "permissions": ["contextMenus", "storage"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_title": "Open Meltbead pattern maker",
+    "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png" }
+  }
+}
