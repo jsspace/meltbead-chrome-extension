@@ -3,20 +3,20 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Meltbead · Image to bead pattern</title>
+    <title>Meltbead · Web image to bead pattern</title>
     <link rel="stylesheet" href="editor.css">
     <script type="module" src="editor.js"></script>
   </head>
   <body>
     <header class="site-header">
       <div class="brand"><span class="brand-mark" aria-hidden="true">✣</span><span>Meltbead</span></div>
-      <a href="https://meltbead.com/perler-bead-pattern-maker" target="_blank" rel="noopener noreferrer">Website pattern maker ↗</a>
+      <a href="https://meltbead.com/perler-bead-pattern-maker?utm_source=chrome_extension&amp;utm_medium=referral&amp;utm_campaign=pattern_maker" target="_blank" rel="noopener noreferrer">Website pattern maker ↗</a>
     </header>
 
     <main>
       <div class="intro">
-        <h1>Turn an image into a bead pattern</h1>
-        <p>Choose a webpage image or upload your own. Preview real bead color codes, then download a pattern and materials list.</p>
+        <h1>Turn a webpage image into a bead pattern</h1>
+        <p>Right-click an image while browsing, or upload your own. Preview real bead color codes, then download a pattern and materials list.</p>
       </div>
 
       <section class="workspace" aria-label="Pattern maker">
@@ -25,7 +25,7 @@
           <div id="remote-source" class="remote-source" hidden>
             <p>Image selected from <strong id="source-domain"></strong></p>
             <button id="load-remote" class="button primary" type="button">Load selected image</button>
-            <p class="hint">Chrome may ask to allow access to this image's website. Some websites block downloads; upload a saved copy below if needed.</p>
+            <p class="hint">Chrome may ask to allow access to this image's website. The pattern appears automatically after the image loads. If this website blocks downloads, save the image and upload it below.</p>
           </div>
           <label id="drop-zone" class="drop-zone">
             <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Upload a PNG, JPG, or WebP image">
@@ -43,27 +43,29 @@
             <label class="field"><span>Grid width</span><input id="grid-width" type="number" min="16" max="96" step="1" value="48"></label>
             <label class="field"><span>Max colors</span><input id="max-colors" type="number" min="2" max="64" step="1" value="24"></label>
           </div>
-          <button id="generate" class="button primary" type="button" disabled>Generate pattern</button>
-          <p class="hint">Color values are screen approximations. Check your bead stock before buying, especially for effect finishes.</p>
+          <p class="hint">The pattern updates automatically when you change these settings. Color values are screen approximations; check your bead stock before buying.</p>
         </aside>
 
         <section class="panel result" aria-labelledby="result-title">
-          <div class="result-heading"><div><h2 id="result-title">3. Preview and export</h2><p id="pattern-summary">Choose an image to begin.</p></div></div>
+          <div class="result-heading"><div><h2 id="result-title">3. Preview and export</h2><p id="pattern-summary" aria-live="polite">Choose an image to begin.</p></div></div>
+          <p id="status" class="status" role="status" aria-live="polite"></p>
           <div id="empty-state" class="empty-state"><span class="empty-icon" aria-hidden="true">▦</span><strong>Your pattern will appear here</strong><span>Right-click a webpage image or upload a file.</span></div>
           <div id="pattern-content" hidden>
             <div class="canvas-wrap"><canvas id="pattern-canvas" aria-label="Generated bead pattern"></canvas></div>
+            <div class="refine-card">
+              <div><strong>Want to fine-tune this pattern?</strong><p>Edit individual beads, adjust colors, and print a PDF in the full Meltbead editor.</p></div>
+              <button id="continue-site" class="button primary" type="button">Refine on Meltbead ↗</button>
+              <p class="hint">Your source image will download first. Upload it on the website to continue; the current grid is not transferred.</p>
+            </div>
             <div class="export-actions">
               <button id="download-png" class="button" type="button">Download pattern PNG</button>
               <button id="download-csv" class="button" type="button">Download materials CSV</button>
-              <button id="continue-site" class="button secondary" type="button">Continue on Meltbead ↗</button>
             </div>
-            <p class="hint">To edit or print on the website, this button downloads your source image; upload it again after the website opens.</p>
             <h3>Beads needed</h3>
             <div id="materials" class="materials"></div>
           </div>
         </section>
       </section>
-      <p id="status" class="status" role="status" aria-live="polite"></p>
     </main>
   </body>
 </html>

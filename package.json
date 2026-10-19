@@ -1,12 +1,12 @@
 {
   "name": "meltbead-chrome-extension",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "description": "Turn a webpage image into a fuse bead pattern in Chrome.",
   "scripts": {
     "test": "node --test",
-    "check": "node --check background.js && node --check editor.js && node --check pattern.js",
+    "check": "node --check background.js && node --check editor.js && node --check image-type.js && node --check pattern.js",
     "icons": "node scripts/create-icons.js"
   }
 }

@@ -1,6 +1,6 @@
-# Meltbead Chrome extension
+# Meltbead – Web Image to Bead Pattern
 
-Turn an image on a website into a fuse bead pattern. Right-click an image, select **Create a bead pattern with Meltbead**, then choose a brand palette, grid width, and color limit. You can also open the extension button and upload a local PNG, JPG, or WebP.
+The Chrome extension for turning a webpage image into a fuse bead pattern. Right-click an image, select **Create a bead pattern with Meltbead**, then load the selected image if Chrome asks for site access. The grid appears automatically. Changing the brand palette, grid width, or color limit updates it in real time. You can also open the extension button and upload a local PNG, JPG, or WebP.
 
 The editor previews the bead grid, shows exact color codes and bead counts, and exports a PNG pattern or CSV materials list. Image processing runs inside the extension on your computer. It does not upload source images to Meltbead.
 
@@ -17,9 +17,11 @@ No build step or npm install is required. Use Node.js 18 or newer for `npm test`
 
 - `contextMenus`: add the image right-click command.
 - `storage`: hold the selected image URL between the right-click action and editor tab for the current browser session.
-- Optional site access: requested only after you click **Load selected image**, and only for the image website. Some websites restrict image downloads even after access is granted; save the image and use the upload control in that case.
+- Optional site access: requested only after you click **Load selected image**, and only for the image website. Once granted, later images from that site load automatically. Some websites restrict image downloads even after access is granted; save the image and use the upload control in that case.
 
-The extension button opens the editor for local uploads. The website link opens [Meltbead's pattern maker](https://meltbead.com/perler-bead-pattern-maker). To continue editing there, the extension downloads your source image and you upload it again in the website editor. Pattern state is not transferred automatically.
+The extension button opens the editor for local uploads. The **Refine on Meltbead** button below the generated grid opens [Meltbead's pattern maker](https://meltbead.com/perler-bead-pattern-maker). It downloads your source image first; upload that image in the website editor. Pattern state is not transferred automatically.
+
+Links from the extension to the website include `utm_source=chrome_extension` so visits can be identified separately from organic search traffic.
 
 ## Color data
 

@@ -1,11 +1,12 @@
 import { palettes, getPalette } from './palettes.js';
 import { generatePattern, materialsCsv } from './pattern.js';
+import { rasterType } from './image-type.js';
 
 const $ = (id) => document.getElementById(id);
 const paletteSelect = $('palette');
 const status = $('status');
 const previewCanvas = $('pattern-canvas');
-const app = { source: null, sourceName: '', imageUrl: null, pattern: null, palette: null, selectedUrl: null };
+const app = { source: null, sourceName: '', imageUrl: null, imageData: null, pattern: null, palette: null, selectedUrl: null, generation: 0, timer: null };
 
 function showStatus(message, success = false) {
   status.textContent = message;
@@ -34,6 +35,8 @@ function sourceFileName() {
 }
 
 function setSource(blob, name) {
+  app.generation += 1;
+  app.imageData = null;
   if (app.imageUrl) URL.revokeObjectURL(app.imageUrl);
   app.imageUrl = URL.createObjectURL(blob);
   app.source = blob;
@@ -42,11 +45,11 @@ function setSource(blob, name) {
   $('source-image').src = app.imageUrl;
   $('source-name').textContent = name;
   $('source-preview').hidden = false;
-  $('generate').disabled = false;
   $('pattern-content').hidden = true;
   $('empty-state').hidden = false;
-  $('pattern-summary').textContent = 'Ready to generate.';
-  showStatus('Image loaded. Choose the bead settings and generate a pattern.', true);
+  $('pattern-summary').textContent = 'Generating pattern…';
+  showStatus('Image loaded. Generating pattern…', true);
+  scheduleGenerate(0);
 }
 
 function useFile(file) {
@@ -63,30 +66,37 @@ function useFile(file) {
   $('remote-source').hidden = true;
 }
 
-async function loadRemote() {
+async function loadRemote(requestPermission = true) {
   try {
     const url = new URL(app.selectedUrl);
     if (!['http:', 'https:'].includes(url.protocol)) throw new Error('This image URL cannot be opened. Save the image and upload it instead.');
     const origin = `${url.protocol}//${url.hostname}/*`;
     // Request directly from the click handler so Chrome retains the user gesture.
-    const granted = await chrome.permissions.request({ origins: [origin] });
+    const granted = requestPermission
+      ? await chrome.permissions.request({ origins: [origin] })
+      : await chrome.permissions.contains({ origins: [origin] });
     if (!granted) {
       showStatus('Access was not granted. Save the image and upload it instead.');
       return;
     }
     $('load-remote').disabled = true;
     showStatus('Loading the selected image…', true);
-    const response = await fetch(url.href, { credentials: 'omit', referrerPolicy: 'no-referrer' });
+    let response = await fetch(url.href, { credentials: 'omit', referrerPolicy: 'no-referrer' });
+    if (response.status === 401 || response.status === 403) {
+      response = await fetch(url.href, { credentials: 'include' });
+    }
     if (!response.ok) throw new Error(`The image website returned ${response.status}. Save the image and upload it instead.`);
     const bytes = Number(response.headers.get('content-length'));
     if (bytes > 15 * 1024 * 1024) throw new Error('This image is larger than 15 MB. Save a smaller copy and upload it.');
     const blob = await response.blob();
     if (blob.size > 15 * 1024 * 1024) throw new Error('This image is larger than 15 MB. Save a smaller copy and upload it.');
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(blob.type)) {
+    const type = rasterType(await blob.slice(0, 16).arrayBuffer());
+    if (!type) {
       throw new Error('This image format is not supported. Save a PNG, JPG or WebP copy and upload it.');
     }
-    const name = decodeURIComponent(url.pathname.split('/').pop() || 'Web image');
-    setSource(blob, name);
+    let name = url.pathname.split('/').pop() || 'Web image';
+    try { name = decodeURIComponent(name); } catch { /* Keep the URL filename. */ }
+    setSource(new File([blob], name, { type }), name);
     $('remote-source').hidden = true;
   } catch (error) {
     showStatus(error instanceof Error ? error.message : 'Could not load this image. Save it and upload it instead.');
@@ -194,26 +204,40 @@ function showPattern() {
   $('pattern-content').hidden = false;
 }
 
+function scheduleGenerate(delay = 180) {
+  app.generation += 1;
+  clearTimeout(app.timer);
+  if (app.source) app.timer = setTimeout(() => { void runGenerate(); }, delay);
+}
+
 async function runGenerate() {
   if (!app.source) return;
-  $('generate').disabled = true;
+  const generation = ++app.generation;
   showStatus('Generating pattern…', true);
-  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   try {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     const palette = getPalette(paletteSelect.value);
-    const image = await imageDataFromBlob(app.source);
-    app.pattern = generatePattern(image, {
+    const source = app.source;
+    const image = app.imageData ?? await imageDataFromBlob(source);
+    if (generation !== app.generation) return;
+    app.imageData = image;
+    const pattern = generatePattern(image, {
       width: Number($('grid-width').value),
       maxColors: Number($('max-colors').value),
       palette: palette.matchingColors,
     });
+    if (generation !== app.generation) return;
+    app.pattern = pattern;
     app.palette = palette;
     showPattern();
-    showStatus('Pattern ready. Download the pattern and materials list below.', true);
+    showStatus('', true);
   } catch (error) {
+    if (generation !== app.generation) return;
+    app.pattern = null;
+    $('pattern-content').hidden = true;
+    $('empty-state').hidden = false;
+    $('pattern-summary').textContent = 'Could not generate this pattern.';
     showStatus(error instanceof Error ? error.message : 'Could not generate a pattern from this image.');
-  } finally {
-    $('generate').disabled = false;
   }
 }
 
@@ -236,7 +260,7 @@ function downloadCsv() {
 function continueOnWebsite() {
   if (!app.source) return;
   downloadBlob(app.source, sourceFileName());
-  void chrome.tabs.create({ url: 'https://meltbead.com/perler-bead-pattern-maker' });
+  void chrome.tabs.create({ url: 'https://meltbead.com/perler-bead-pattern-maker?utm_source=chrome_extension&utm_medium=referral&utm_campaign=pattern_refine' });
   showStatus('Source image downloaded. Upload it in the website editor to continue.', true);
 }
 
@@ -260,8 +284,10 @@ async function initialize() {
     dropZone.classList.remove('drag-over');
     useFile(event.dataTransfer.files?.[0]);
   });
-  $('load-remote').addEventListener('click', loadRemote);
-  $('generate').addEventListener('click', runGenerate);
+  $('load-remote').addEventListener('click', () => { void loadRemote(true); });
+  paletteSelect.addEventListener('change', () => scheduleGenerate());
+  $('grid-width').addEventListener('input', () => scheduleGenerate());
+  $('max-colors').addEventListener('input', () => scheduleGenerate());
   $('download-png').addEventListener('click', downloadPng);
   $('download-csv').addEventListener('click', downloadCsv);
   $('continue-site').addEventListener('click', continueOnWebsite);
@@ -277,6 +303,11 @@ async function initialize() {
     $('source-domain').textContent = 'this page';
   }
   $('remote-source').hidden = false;
+  const url = new URL(app.selectedUrl);
+  if (['http:', 'https:'].includes(url.protocol) &&
+      await chrome.permissions.contains({ origins: [`${url.protocol}//${url.hostname}/*`] })) {
+    void loadRemote(false);
+  }
 }
 
 initialize().catch(() => showStatus('Could not initialize the extension. Reload this page and try again.'));
